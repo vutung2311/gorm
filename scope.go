@@ -26,9 +26,9 @@ type Scope struct {
 	selectAttrs     *[]string
 }
 
-// IndirectValue return scope's reflect value's indirect value
+// IndirectValue return scope's reflect value's indirectValue value
 func (scope *Scope) IndirectValue() reflect.Value {
-	return indirect(reflect.ValueOf(scope.Value))
+	return indirectValue(reflect.ValueOf(scope.Value))
 }
 
 // New create a new Scope without search information
@@ -435,7 +435,7 @@ func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
 		reflectValue = reflectValue.Addr()
 	}
 
-	if methodValue := reflectValue.MethodByName(methodName); methodValue.IsValid() {
+	callMethod := func(methodValue reflect.Value){
 		switch method := methodValue.Interface().(type) {
 		case func():
 			method()
@@ -455,6 +455,29 @@ func (scope *Scope) callMethod(methodName string, reflectValue reflect.Value) {
 			scope.Err(newDB.Error)
 		default:
 			scope.Err(fmt.Errorf("unsupported function %v", methodName))
+		}
+	}
+
+	if methodValue := reflectValue.MethodByName(methodName); methodValue.IsValid() {
+		callMethod(methodValue)
+		return
+	}
+
+	reflectType := indirectType(reflect.TypeOf(scope.Value))
+	reflectValue = scope.IndirectValue()
+	if reflectType.Kind() != reflect.Struct {
+		return
+	}
+	for i := 0; i < reflectType.NumField(); i++ {
+		if v:= reflectType.Field(i); !v.Anonymous {
+			continue
+		}
+		field := reflectValue.Field(i)
+		if field.CanAddr() && field.Kind() != reflect.Ptr {
+			field = field.Addr()
+		}
+		if methodValue := field.MethodByName(methodName); methodValue.IsValid() {
+			callMethod(methodValue)
 		}
 	}
 }
@@ -1294,13 +1317,13 @@ func (scope *Scope) autoIndex() *Scope {
 
 func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
 	for _, value := range values {
-		indirectValue := indirect(reflect.ValueOf(value))
+		indirectVal := indirectValue(reflect.ValueOf(value))
 
-		switch indirectValue.Kind() {
+		switch indirectVal.Kind() {
 		case reflect.Slice:
-			for i := 0; i < indirectValue.Len(); i++ {
+			for i := 0; i < indirectVal.Len(); i++ {
 				var result []interface{}
-				var object = indirect(indirectValue.Index(i))
+				var object = indirectValue(indirectVal.Index(i))
 				var hasValue = false
 				for _, column := range columns {
 					field := object.FieldByName(column)
@@ -1318,7 +1341,7 @@ func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (r
 			var result []interface{}
 			var hasValue = false
 			for _, column := range columns {
-				field := indirectValue.FieldByName(column)
+				field := indirectVal.FieldByName(column)
 				if hasValue || !isBlank(field) {
 					hasValue = true
 				}
@@ -1349,7 +1372,7 @@ func (scope *Scope) getColumnAsScope(column string) *Scope {
 			results := reflect.New(reflect.SliceOf(reflect.PtrTo(fieldType))).Elem()
 
 			for i := 0; i < indirectScopeValue.Len(); i++ {
-				result := indirect(indirect(indirectScopeValue.Index(i)).FieldByName(column))
+				result := indirectValue(indirectValue(indirectScopeValue.Index(i)).FieldByName(column))
 
 				if result.Kind() == reflect.Slice {
 					for j := 0; j < result.Len(); j++ {

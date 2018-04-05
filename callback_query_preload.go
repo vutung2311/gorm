@@ -150,7 +150,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 
 	// assign find results
 	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
+		resultsValue       = indirectValue(reflect.ValueOf(results))
 		indirectScopeValue = scope.IndirectValue()
 	)
 
@@ -159,7 +159,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 			for i := 0; i < resultsValue.Len(); i++ {
 				result := resultsValue.Index(i)
 				foreignValues := getValueFromFields(result, relation.ForeignFieldNames)
-				if indirectValue := indirect(indirectScopeValue.Index(j)); equalAsString(getValueFromFields(indirectValue, relation.AssociationForeignFieldNames), foreignValues) {
+				if indirectValue := indirectValue(indirectScopeValue.Index(j)); equalAsString(getValueFromFields(indirectValue, relation.AssociationForeignFieldNames), foreignValues) {
 					indirectValue.FieldByName(field.Name).Set(result)
 					break
 				}
@@ -199,7 +199,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 
 	// assign find results
 	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
+		resultsValue       = indirectValue(reflect.ValueOf(results))
 		indirectScopeValue = scope.IndirectValue()
 	)
 
@@ -212,7 +212,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 		}
 
 		for j := 0; j < indirectScopeValue.Len(); j++ {
-			object := indirect(indirectScopeValue.Index(j))
+			object := indirectValue(indirectScopeValue.Index(j))
 			objectRealValue := getValueFromFields(object, relation.AssociationForeignFieldNames)
 			f := object.FieldByName(field.Name)
 			if results, ok := preloadMap[toString(objectRealValue)]; ok {
@@ -245,7 +245,7 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 
 	// assign find results
 	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
+		resultsValue       = indirectValue(reflect.ValueOf(results))
 		indirectScopeValue = scope.IndirectValue()
 	)
 
@@ -254,7 +254,7 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 		if indirectScopeValue.Kind() == reflect.Slice {
 			value := getValueFromFields(result, relation.AssociationForeignFieldNames)
 			for j := 0; j < indirectScopeValue.Len(); j++ {
-				object := indirect(indirectScopeValue.Index(j))
+				object := indirectValue(indirectScopeValue.Index(j))
 				if equalAsString(getValueFromFields(object, relation.ForeignFieldNames), value) {
 					object.FieldByName(field.Name).Set(result)
 				}
@@ -366,7 +366,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 	if indirectScopeValue.Kind() == reflect.Slice {
 		for j := 0; j < indirectScopeValue.Len(); j++ {
-			object := indirect(indirectScopeValue.Index(j))
+			object := indirectValue(indirectScopeValue.Index(j))
 			key := toString(getValueFromFields(object, foreignFieldNames))
 			fieldsSourceMap[key] = append(fieldsSourceMap[key], object.FieldByName(field.Name))
 		}

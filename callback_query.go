@@ -34,7 +34,7 @@ func queryCallback(scope *Scope) {
 	}
 
 	if value, ok := scope.Get("gorm:query_destination"); ok {
-		results = indirect(reflect.ValueOf(value))
+		results = indirectValue(reflect.ValueOf(value))
 	}
 
 	if kind := results.Kind(); kind == reflect.Slice {
