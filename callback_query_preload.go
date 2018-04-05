@@ -156,7 +156,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 
 	// assign find results
 	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
+		resultsValue       = indirectValue(reflect.ValueOf(results))
 		indirectScopeValue = scope.IndirectValue()
 	)
 
@@ -168,7 +168,7 @@ func (scope *Scope) handleHasOnePreload(field *Field, conditions []interface{}) 
 			foreignValuesToResults[foreignValues] = result
 		}
 		for j := 0; j < indirectScopeValue.Len(); j++ {
-			indirectValue := indirect(indirectScopeValue.Index(j))
+			indirectValue := indirectValue(indirectScopeValue.Index(j))
 			valueString := toString(getValueFromFields(indirectValue, relation.AssociationForeignFieldNames))
 			if result, found := foreignValuesToResults[valueString]; found {
 				indirectValue.FieldByName(field.Name).Set(result)
@@ -208,7 +208,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 
 	// assign find results
 	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
+		resultsValue       = indirectValue(reflect.ValueOf(results))
 		indirectScopeValue = scope.IndirectValue()
 	)
 
@@ -221,7 +221,7 @@ func (scope *Scope) handleHasManyPreload(field *Field, conditions []interface{})
 		}
 
 		for j := 0; j < indirectScopeValue.Len(); j++ {
-			object := indirect(indirectScopeValue.Index(j))
+			object := indirectValue(indirectScopeValue.Index(j))
 			objectRealValue := getValueFromFields(object, relation.AssociationForeignFieldNames)
 			f := object.FieldByName(field.Name)
 			if results, ok := preloadMap[toString(objectRealValue)]; ok {
@@ -250,18 +250,24 @@ func (scope *Scope) handleBelongsToPreload(field *Field, conditions []interface{
 
 	// find relations
 	results := makeSlice(field.Struct.Type)
-	scope.Err(preloadDB.Where(fmt.Sprintf("%v IN (%v)", toQueryCondition(scope, relation.AssociationForeignDBNames), toQueryMarks(primaryKeys)), toQueryValues(primaryKeys)...).Find(results, preloadConditions...).Error)
+	scope.Err(preloadDB.Where(
+		fmt.Sprintf("%v IN (%v)",
+			toQueryCondition(scope, relation.AssociationForeignDBNames),
+			toQueryMarks(primaryKeys),
+		),
+		toQueryValues(primaryKeys)...,
+	).Find(results, preloadConditions...).Error)
 
 	// assign find results
 	var (
-		resultsValue       = indirect(reflect.ValueOf(results))
+		resultsValue       = indirectValue(reflect.ValueOf(results))
 		indirectScopeValue = scope.IndirectValue()
 	)
 
 	foreignFieldToObjects := make(map[string][]*reflect.Value)
 	if indirectScopeValue.Kind() == reflect.Slice {
 		for j := 0; j < indirectScopeValue.Len(); j++ {
-			object := indirect(indirectScopeValue.Index(j))
+			object := indirectValue(indirectScopeValue.Index(j))
 			valueString := toString(getValueFromFields(object, relation.ForeignFieldNames))
 			foreignFieldToObjects[valueString] = append(foreignFieldToObjects[valueString], &object)
 		}
@@ -383,7 +389,7 @@ func (scope *Scope) handleManyToManyPreload(field *Field, conditions []interface
 
 	if indirectScopeValue.Kind() == reflect.Slice {
 		for j := 0; j < indirectScopeValue.Len(); j++ {
-			object := indirect(indirectScopeValue.Index(j))
+			object := indirectValue(indirectScopeValue.Index(j))
 			key := toString(getValueFromFields(object, foreignFieldNames))
 			fieldsSourceMap[key] = append(fieldsSourceMap[key], object.FieldByName(field.Name))
 		}

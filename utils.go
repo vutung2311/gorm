@@ -69,11 +69,18 @@ func Expr(expression string, args ...interface{}) *expr {
 	return &expr{expr: expression, args: args}
 }
 
-func indirect(reflectValue reflect.Value) reflect.Value {
+func indirectValue(reflectValue reflect.Value) reflect.Value {
 	for reflectValue.Kind() == reflect.Ptr {
 		reflectValue = reflectValue.Elem()
 	}
 	return reflectValue
+}
+
+func indirectType(reflectType reflect.Type) reflect.Type {
+	for reflectType.Kind() == reflect.Ptr {
+		reflectType = reflectType.Elem()
+	}
+	return reflectType
 }
 
 func toQueryMarks(primaryValues [][]interface{}) string {
