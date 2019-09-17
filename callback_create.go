@@ -101,6 +101,9 @@ func createCallback(scope *Scope) {
 		}
 
 		lastInsertIDReturningSuffix := scope.Dialect().LastInsertIDReturningSuffix(quotedTableName, returningColumn)
+		if flag, ok := scope.Get("gorm:insert_without_return"); ok && flag.(bool) {
+			lastInsertIDReturningSuffix = ""
+		}
 
 		if len(columns) == 0 {
 			scope.Raw(fmt.Sprintf(
