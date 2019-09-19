@@ -34,7 +34,7 @@ func assignUpdatingAttributesCallback(scope *Scope) {
 // beforeUpdateCallback will invoke `BeforeSave`, `BeforeUpdate` method before updating
 func beforeUpdateCallback(scope *Scope) {
 	if scope.DB().HasBlockGlobalUpdate() && !scope.hasConditions() {
-		scope.Err(errors.New("Missing WHERE clause while updating"))
+		scope.Err(errors.New("missing WHERE clause while updating"))
 		return
 	}
 	if _, ok := scope.Get("gorm:update_column"); !ok {
@@ -50,7 +50,7 @@ func beforeUpdateCallback(scope *Scope) {
 // updateTimeStampForUpdateCallback will set `UpdatedAt` when updating
 func updateTimeStampForUpdateCallback(scope *Scope) {
 	if _, ok := scope.Get("gorm:update_column"); !ok {
-		scope.SetColumn("UpdatedAt", NowFunc())
+		scope.SetColumn("UpdatedAt", scope.db.nowFunc())
 	}
 }
 
@@ -75,7 +75,7 @@ func updateCallback(scope *Scope) {
 		} else {
 			for _, field := range scope.Fields() {
 				if scope.changeableField(field) {
-					if !field.IsPrimaryKey && field.IsNormal {
+					if !field.IsPrimaryKey && field.IsNormal && (field.Name != "CreatedAt" || !field.IsBlank) {
 						if !field.IsForeignKey || !field.IsBlank || !field.HasDefaultValue {
 							sqls = append(sqls, fmt.Sprintf("%v = %v", scope.Quote(field.DBName), scope.AddToVars(field.Field.Interface())))
 						}
@@ -101,8 +101,8 @@ func updateCallback(scope *Scope) {
 				"UPDATE %v SET %v%v%v",
 				scope.QuotedTableName(),
 				strings.Join(sqls, ", "),
-				addExtraSpaceBeforeIfExist(scope.CombinedConditionSql()),
-				addExtraSpaceBeforeIfExist(extraOption),
+				addExtraSpaceIfExist(scope.CombinedConditionSql()),
+				addExtraSpaceIfExist(extraOption),
 			)).Exec()
 		}
 	}

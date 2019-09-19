@@ -18,13 +18,13 @@ func queryCallback(scope *Scope) {
 	if _, skip := scope.InstanceGet("gorm:skip_query_callback"); skip {
 		return
 	}
-	
+
 	//we are only preloading relations, dont touch base model
 	if _, skip := scope.InstanceGet("gorm:only_preload"); skip {
 		return
 	}
 
-	defer scope.trace(NowFunc())
+	defer scope.trace(scope.db.nowFunc())
 
 	var (
 		isSlice, isPtr bool
@@ -61,10 +61,7 @@ func queryCallback(scope *Scope) {
 	if !scope.HasError() {
 		scope.db.RowsAffected = 0
 		if str, ok := scope.Get("gorm:query_option"); ok {
-			scope.SQL += addExtraSpaceBeforeIfExist(fmt.Sprint(str))
-		}
-		if str, ok := scope.Get("gorm:query_prefix"); ok {
-			scope.SQL = addExtraSpaceAfterIfExist(fmt.Sprint(str)) + scope.SQL
+			scope.SQL += addExtraSpaceIfExist(fmt.Sprint(str))
 		}
 
 		if rows, err := scope.SQLDB().Query(scope.SQL, scope.SQLVars...); scope.Err(err) == nil {
