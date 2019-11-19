@@ -1,3 +1,3 @@
 package pgx
 
-import _ "github.com/jackc/pgx/stdlib"
+import _ "github.com/jackc/pgx/v4/stdlib"
